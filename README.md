@@ -36,6 +36,20 @@ Please also read our [Contributor Terms](CONTRIBUTING.md#contributor-terms) befo
 
 Any contribution intentionally submitted for inclusion in a N3N project or a Knytx Labs open source project, shall comply with the Rust standard licensing model (MIT OR Apache 2.0) and therefore be dual licensed as described below, without any additional terms or conditions:
 
+## Installation
+
+Add the following to Cargo.toml:
+
+```toml
+jute = "0.2.0"
+```
+
+To use the latest `master` branch, for example:
+
+```toml
+jute = { git = "https://github.com/n3nx/jute", branch = "dev" }
+```
+
 ### License
 
 This contribution is dual licensed under EITHER OF
