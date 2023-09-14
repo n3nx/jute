@@ -2,6 +2,11 @@
 name = "jute"
 version = "0.1.0"
 edition = "2021"
+authors = ["Naman Bishnoi <nmn@n3n.org>"]
+description = "An opinionated JSON Object Signing and Encryption (JOSE) library that includes implementations of JSON Web Tokens (JWT), JSON Web Signature (JWS), JSON Web Encryption (JWE) along with dependencies like JSON Web Algorithm (JWA) and JSON Web Keys (JWK)."
+license = "MIT OR Apache-2.0"
+homepage = "https://n3n.org/"
+repository = "https://github.com/n3nx/jute"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
