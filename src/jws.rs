@@ -27,7 +27,7 @@ pub enum Secret {
     ///
     /// # Examples
     /// ```
-    /// use biscuit::jws::Secret;
+    /// use jute::jws::Secret;
     ///
     /// let secret = Secret::bytes_from_str("secret");
     /// ```
@@ -54,7 +54,7 @@ pub enum Secret {
     ///
     /// # Examples
     /// ```
-    /// use biscuit::jws::Secret;
+    /// use jute::jws::Secret;
     ///
     /// let secret = Secret::rsa_keypair_from_file("test/fixtures/rsa_private_key.der");
     /// ```
@@ -70,9 +70,9 @@ pub enum Secret {
     ///
     /// # Examples
     /// ```
-    /// use biscuit::jws::Secret;
+    /// use jute::jws::Secret;
     ///
-    /// let secret = Secret::ecdsa_keypair_from_file(biscuit::jwa::SignatureAlgorithm::ES256, "test/fixtures/ecdsa_private_key.p8");
+    /// let secret = Secret::ecdsa_keypair_from_file(jute::jwa::SignatureAlgorithm::ES256, "test/fixtures/ecdsa_private_key.p8");
     /// ```
     EcdsaKeyPair(Arc<signature::EcdsaKeyPair>),
     /// Bytes of a DER encoded RSA Public Key
@@ -148,7 +148,7 @@ pub enum Secret {
     ///
     /// # Examples
     /// ```
-    /// use biscuit::jws::Secret;
+    /// use jute::jws::Secret;
     ///
     /// let secret = Secret::public_key_from_file("test/fixtures/rsa_public_key.der");
     PublicKey(Vec<u8>),

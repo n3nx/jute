@@ -19,7 +19,7 @@ use super::{Header, Secret};
 ///
 /// # Examples
 /// ## Signing and verifying a JWT with HS256
-/// See an example in the [`biscuit::JWT`](../type.JWT.html) type alias.
+/// See an example in the [`jute::JWT`](../type.JWT.html) type alias.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Compact<T, H> {
@@ -428,6 +428,7 @@ impl<T: CompactPart, H: Serialize + DeserializeOwned> CompactPart for Compact<T,
 mod tests {
     use std::str::{self, FromStr};
 
+    use base64ct::{Base64UrlUnpadded, Encoding};
     use serde::{Deserialize, Serialize};
 
     use super::{Compact, Header, Secret, SignatureAlgorithm};
@@ -468,14 +469,14 @@ mod tests {
             },
         };
 
-        let biscuit = Compact::new_decoded(
+        let jute = Compact::new_decoded(
             From::from(RegisteredHeader {
                 algorithm: SignatureAlgorithm::None,
                 ..Default::default()
             }),
             expected_claims,
         );
-        let _ = serde_json::to_string(&biscuit).unwrap();
+        let _ = serde_json::to_string(&jute).unwrap();
     }
 
     #[test]
@@ -521,8 +522,8 @@ mod tests {
         let token = not_err!(expected_jwt.into_encoded(&Secret::None));
         assert_eq!(expected_token, not_err!(token.encoded()).to_string());
 
-        let biscuit = not_err!(token.into_decoded(&Secret::None, SignatureAlgorithm::None));
-        let actual_claims = not_err!(biscuit.payload());
+        let jute = not_err!(token.into_decoded(&Secret::None, SignatureAlgorithm::None));
+        let actual_claims = not_err!(jute.payload());
         assert_eq!(expected_claims, *actual_claims);
     }
 
@@ -555,11 +556,11 @@ mod tests {
             not_err!(expected_jwt.into_encoded(&Secret::Bytes("secret".to_string().into_bytes())));
         assert_eq!(HS256_PAYLOAD, not_err!(token.encoded()).to_string());
 
-        let biscuit = not_err!(token.into_decoded(
+        let jute = not_err!(token.into_decoded(
             &Secret::Bytes("secret".to_string().into_bytes()),
             SignatureAlgorithm::HS256
         ));
-        assert_eq!(expected_claims, *not_err!(biscuit.payload()));
+        assert_eq!(expected_claims, *not_err!(jute.payload()));
     }
 
     #[test]
@@ -602,17 +603,15 @@ mod tests {
         assert_eq!(expected_token, not_err!(token.encoded()).to_string());
 
         let public_key = Secret::public_key_from_file("test/fixtures/rsa_public_key.der").unwrap();
-        let biscuit = not_err!(token.into_decoded(&public_key, SignatureAlgorithm::RS256));
-        assert_eq!(expected_claims, *not_err!(biscuit.payload()));
+        let jute = not_err!(token.into_decoded(&public_key, SignatureAlgorithm::RS256));
+        assert_eq!(expected_claims, *not_err!(jute.payload()));
     }
 
     #[test]
     fn compact_jws_verify_es256() {
-        use data_encoding::HEXUPPER;
-
         // This is a ECDSA Public key in `SubjectPublicKey` form.
         // Conversion is not available in `ring` yet.
-        // See https://github.com/lawliet89/biscuit/issues/71#issuecomment-296445140 for a
+        // See https://github.com/lawliet89/jute/issues/71#issuecomment-296445140 for a
         // way to retrieve it from `SubjectPublicKeyInfo`.
         let public_key =
             "043727F96AAD416887DD75CC2E333C3D8E06DCDF968B6024579449A2B802EFC891F638C75\
@@ -621,7 +620,7 @@ mod tests {
                    eyJ0b2tlbl90eXBlIjoic2VydmljZSIsImlhdCI6MTQ5MjkzODU4OH0.\
                    do_XppIOFthPWlTXL95CIBfgRdyAxbcIsUfM0YxMjCjqvp4ehHFA3I-JasABKzC8CAy4ndhCHsZdpAtK\
                    kqZMEA";
-        let signing_secret = Secret::PublicKey(not_err!(HEXUPPER.decode(public_key.as_bytes())));
+        let signing_secret = Secret::PublicKey(not_err!(hex::decode(public_key.as_bytes())));
 
         let token = Compact::<ClaimsSet<serde_json::Value>, Empty>::new_encoded(jwt);
         let _ = not_err!(token.into_decoded(&signing_secret, SignatureAlgorithm::ES256));
@@ -684,11 +683,11 @@ mod tests {
         let expected_jwt = Compact::new_decoded(header.clone(), expected_claims);
         let token =
             not_err!(expected_jwt.into_encoded(&Secret::Bytes("secret".to_string().into_bytes())));
-        let biscuit = not_err!(token.into_decoded(
+        let jute = not_err!(token.into_decoded(
             &Secret::Bytes("secret".to_string().into_bytes()),
             SignatureAlgorithm::HS256
         ));
-        assert_eq!(header, *not_err!(biscuit.header()));
+        assert_eq!(header, *not_err!(jute.header()));
     }
 
     #[test]
@@ -770,11 +769,11 @@ mod tests {
             not_err!(expected_jwt.into_encoded(&Secret::Bytes("secret".to_string().into_bytes())));
         assert_eq!(expected_token, not_err!(token.encoded()).to_string());
 
-        let biscuit = not_err!(token.into_decoded(
+        let jute = not_err!(token.into_decoded(
             &Secret::Bytes("secret".to_string().into_bytes()),
             SignatureAlgorithm::HS256
         ));
-        assert_eq!(payload, *not_err!(biscuit.payload()));
+        assert_eq!(payload, *not_err!(jute.payload()));
     }
 
     #[test]
@@ -1182,9 +1181,9 @@ mod tests {
     fn signature_is_returned_correctly() {
         let encoded_token: Compact<ClaimsSet<PrivateClaims>, Empty> =
             Compact::new_encoded(HS256_PAYLOAD);
-        let expected_signature = data_encoding::BASE64URL_NOPAD
-            .decode(b"VFCl2un1Kc17odzOe2Ehf4DVrWddu3U4Ux3GFpOZHtc")
-            .expect("to not error");
+        let expected_signature =
+            Base64UrlUnpadded::decode_vec("VFCl2un1Kc17odzOe2Ehf4DVrWddu3U4Ux3GFpOZHtc")
+                .expect("to not error");
 
         let signature = not_err!(encoded_token.signature());
         assert_eq!(signature, expected_signature);

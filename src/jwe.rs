@@ -5,8 +5,7 @@
 //! you will want to look at the  [`Compact`](enum.Compact.html) enum.
 use std::fmt;
 
-use data_encoding::BASE64URL_NOPAD;
-
+use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::de::{self, DeserializeOwned};
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -240,15 +239,15 @@ impl From<RegisteredHeader> for Header<Empty> {
 ///
 /// # Examples
 /// ## Encrypting a JWS/JWT
-/// See the example code in the [`biscuit::JWE`](../type.JWE.html) type alias.
+/// See the example code in the [`jute::JWE`](../type.JWE.html) type alias.
 ///
 /// ## Encrypting a string payload with A256GCMKW and A256GCM
 /// ```
 /// use std::str;
-/// use biscuit::Empty;
-/// use biscuit::jwk::JWK;
-/// use biscuit::jwe;
-/// use biscuit::jwa::{EncryptionOptions, KeyManagementAlgorithm, ContentEncryptionAlgorithm};
+/// use jute::Empty;
+/// use jute::jwk::JWK;
+/// use jute::jwe;
+/// use jute::jwa::{EncryptionOptions, KeyManagementAlgorithm, ContentEncryptionAlgorithm};
 ///
 /// # #[allow(unused_assignments)]
 /// # fn main() {
@@ -416,7 +415,8 @@ where
 
                 // Steps 12 to 14 involves the calculation of `Additional Authenticated Data` for encryption. In
                 // our compact example, our header is the AAD.
-                let encoded_protected_header = BASE64URL_NOPAD.encode(&header.to_bytes()?);
+                let encoded_protected_header =
+                    Base64UrlUnpadded::encode_string(&header.to_bytes()?);
                 // Step 15 involves the actual encryption.
                 let encrypted_payload = header.registered.enc_algorithm.encrypt(
                     &payload,
@@ -497,7 +497,8 @@ where
 
                 // Build encryption result as per steps 14-15
                 let protected_header: Vec<u8> = encrypted.part(0)?;
-                let encoded_protected_header = BASE64URL_NOPAD.encode(protected_header.as_ref());
+                let encoded_protected_header =
+                    Base64UrlUnpadded::encode_string(protected_header.as_ref());
                 let encrypted_payload_result = EncryptionResult {
                     nonce,
                     tag,

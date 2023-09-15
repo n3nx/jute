@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use data_encoding::BASE64URL_NOPAD;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use num_bigint::BigUint;
 use serde::de::{self, DeserializeOwned};
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
@@ -286,7 +286,7 @@ impl AlgorithmParameters {
     ///
     /// ```
     /// // Example from https://tools.ietf.org/html/rfc7638#section-3.1
-    /// let jwk: biscuit::jwk::JWK<biscuit::Empty> = serde_json::from_str(
+    /// let jwk: jute::jwk::JWK<jute::Empty> = serde_json::from_str(
     /// r#"{
     ///   "kty": "RSA",
     ///   "n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw",
@@ -296,7 +296,7 @@ impl AlgorithmParameters {
     ///   }"#,
     /// ).unwrap();
     /// assert_eq!(
-    ///   jwk.algorithm.thumbprint(&biscuit::digest::SHA256).unwrap(),
+    ///   jwk.algorithm.thumbprint(&jute::digest::SHA256).unwrap(),
     ///   "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
     /// );
     /// ```
@@ -336,7 +336,9 @@ impl AlgorithmParameters {
         }
         map.end()?;
         let json_u8 = serializer.into_inner();
-        Ok(BASE64URL_NOPAD.encode(ring::digest::digest(algorithm.0, &json_u8).as_ref()))
+        Ok(Base64UrlUnpadded::encode_string(
+            ring::digest::digest(algorithm.0, &json_u8).as_ref(),
+        ))
     }
 }
 

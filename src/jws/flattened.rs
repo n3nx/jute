@@ -10,7 +10,7 @@ use super::{Header, RegisteredHeader, Secret};
 use crate::errors::{Error, ValidationError};
 use crate::jwa::SignatureAlgorithm;
 use crate::serde_custom;
-use data_encoding::BASE64URL_NOPAD;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize};
 
 // Not using CompactPart::to_bytes here, bounds are overly restrictive
@@ -23,12 +23,12 @@ fn serialize_header<H: Serialize>(header: &Header<H>) -> Result<Vec<u8>, serde_j
 // Warning: pay attention to parameter order
 // Note: this is valid UTF-8, but gets used as bytes later
 fn signing_input(protected_header: &[u8], payload: &[u8]) -> Vec<u8> {
-    let hlen = BASE64URL_NOPAD.encode_len(protected_header.len());
-    let plen = BASE64URL_NOPAD.encode_len(payload.len());
+    let hlen = Base64UrlUnpadded::encoded_len(protected_header);
+    let plen = Base64UrlUnpadded::encoded_len(payload);
     let mut r = Vec::with_capacity(hlen + plen + 1);
-    r.append(&mut BASE64URL_NOPAD.encode(protected_header).into_bytes());
+    r.append(&mut Base64UrlUnpadded::encode_string(protected_header).into_bytes());
     r.push(b'.');
-    r.append(&mut BASE64URL_NOPAD.encode(payload).into_bytes());
+    r.append(&mut Base64UrlUnpadded::encode_string(payload).into_bytes());
     r
 }
 
@@ -45,9 +45,9 @@ fn signing_input(protected_header: &[u8], payload: &[u8]) -> Vec<u8> {
 ///
 /// # Examples
 /// ```
-/// use biscuit::jws::{Header, RegisteredHeader, Signable};
-/// use biscuit::jwa::SignatureAlgorithm;
-/// use biscuit::Empty;
+/// use jute::jws::{Header, RegisteredHeader, Signable};
+/// use jute::jwa::SignatureAlgorithm;
+/// use jute::Empty;
 /// let header = Header::<Empty>::from(RegisteredHeader {
 ///     algorithm: SignatureAlgorithm::ES256,
 ///     ..Default::default()
@@ -99,7 +99,7 @@ impl Signable {
         signing_input(&self.protected_header_serialized, &self.payload)
     }
 
-    /// Return a reference to the registered (known to biscuit)
+    /// Return a reference to the registered (known to jute)
     /// protected headers
     pub fn protected_header_registered(&self) -> &RegisteredHeader {
         &self.protected_header_registered
@@ -156,9 +156,9 @@ impl SignedData {
     ///
     /// # Example
     /// ```
-    /// use biscuit::jwa::SignatureAlgorithm;
-    /// use biscuit::jws::{Header, RegisteredHeader, Secret, Signable, SignedData};
-    /// use biscuit::Empty;
+    /// use jute::jwa::SignatureAlgorithm;
+    /// use jute::jws::{Header, RegisteredHeader, Secret, Signable, SignedData};
+    /// use jute::Empty;
     /// use ring::signature::{ECDSA_P256_SHA256_FIXED_SIGNING, EcdsaKeyPair};
     /// use std::sync::Arc;
     ///
@@ -175,7 +175,7 @@ impl SignedData {
     ///     &ECDSA_P256_SHA256_FIXED_SIGNING, pkcs8.as_ref())?;
     /// let secret = Secret::EcdsaKeyPair(Arc::new(keypair));
     /// let signed = SignedData::sign(data, secret)?;
-    /// # Ok::<(), biscuit::errors::Error>(())
+    /// # Ok::<(), jute::errors::Error>(())
     /// ```
     pub fn sign(data: Signable, secret: Secret) -> Result<Self, Error> {
         let signature = data
@@ -212,9 +212,8 @@ impl SignedData {
     ///
     /// # Example
     /// ```
-    /// use biscuit::jwa::SignatureAlgorithm;
-    /// use biscuit::jws::{Secret, SignedData};
-    /// use data_encoding::HEXUPPER;
+    /// use jute::jwa::SignatureAlgorithm;
+    /// use jute::jws::{Secret, SignedData};
     /// let public_key =
     ///     "043727F96AAD416887DD75CC2E333C3D8E06DCDF968B6024579449A2B802EFC891F638C75\
     ///     1CF687E6FF9A280E11B7036585E60CA32BB469C3E57998A289E0860A6";
@@ -222,13 +221,13 @@ impl SignedData {
     ///     \"payload\":\"eyJ0b2tlbl90eXBlIjoic2VydmljZSIsImlhdCI6MTQ5MjkzODU4OH0\",\
     ///     \"protected\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9\",\
     ///     \"signature\":\"do_XppIOFthPWlTXL95CIBfgRdyAxbcIsUfM0YxMjCjqvp4ehHFA3I-JasABKzC8CAy4ndhCHsZdpAtKkqZMEA\"}";
-    /// let secret = Secret::PublicKey(HEXUPPER.decode(public_key.as_bytes()).unwrap());
+    /// let secret = Secret::PublicKey(hex::decode(public_key.as_bytes()).unwrap());
     /// let signed = SignedData::verify_flattened(
     ///     jwt.as_bytes(),
     ///     secret,
     ///     SignatureAlgorithm::ES256
     /// )?;
-    /// # Ok::<(), biscuit::errors::Error>(())
+    /// # Ok::<(), jute::errors::Error>(())
     /// ```
     pub fn verify_flattened(
         data: &[u8],
@@ -374,13 +373,13 @@ mod tests {
         let token = expected_jwt.serialize_flattened();
         assert_eq!(expected_value, not_err!(serde_json::to_value(&token)));
 
-        let biscuit: SignedData = not_err!(SignedData::verify_flattened(
+        let jute: SignedData = not_err!(SignedData::verify_flattened(
             token.as_bytes(),
             Secret::None,
             SignatureAlgorithm::None,
         ));
         let actual_claims: ClaimsSet<PrivateClaims> =
-            not_err!(biscuit.data().deserialize_json_payload());
+            not_err!(jute.data().deserialize_json_payload());
         assert_eq!(&expected_claims, &actual_claims);
     }
 
@@ -418,14 +417,14 @@ mod tests {
             not_err!(serde_json::to_value(&token))
         );
 
-        let biscuit = not_err!(SignedData::verify_flattened(
+        let jute = not_err!(SignedData::verify_flattened(
             token.as_bytes(),
             Secret::Bytes("secret".to_string().into_bytes()),
             SignatureAlgorithm::HS256
         ));
         assert_eq!(
             &expected_claims,
-            &not_err!(biscuit.data().deserialize_json_payload())
+            &not_err!(jute.data().deserialize_json_payload())
         );
     }
 
@@ -478,24 +477,22 @@ mod tests {
         assert_eq!(expected_value, not_err!(serde_json::to_value(&token)));
 
         let public_key = Secret::public_key_from_file("test/fixtures/rsa_public_key.der").unwrap();
-        let biscuit = not_err!(SignedData::verify_flattened(
+        let jute = not_err!(SignedData::verify_flattened(
             token.as_bytes(),
             public_key,
             SignatureAlgorithm::RS256,
         ));
         assert_eq!(
             expected_claims,
-            not_err!(biscuit.data().deserialize_json_payload())
+            not_err!(jute.data().deserialize_json_payload())
         );
     }
 
     #[test]
     fn flattened_jws_verify_es256() {
-        use data_encoding::HEXUPPER;
-
         // This is a ECDSA Public key in `SubjectPublicKey` form.
         // Conversion is not available in `ring` yet.
-        // See https://github.com/lawliet89/biscuit/issues/71#issuecomment-296445140 for a
+        // See https://github.com/lawliet89/jute/issues/71#issuecomment-296445140 for a
         // way to retrieve it from `SubjectPublicKeyInfo`.
         let public_key =
             "043727F96AAD416887DD75CC2E333C3D8E06DCDF968B6024579449A2B802EFC891F638C75\
@@ -504,7 +501,7 @@ mod tests {
             \"payload\":\"eyJ0b2tlbl90eXBlIjoic2VydmljZSIsImlhdCI6MTQ5MjkzODU4OH0\",\
             \"protected\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9\",\
             \"signature\":\"do_XppIOFthPWlTXL95CIBfgRdyAxbcIsUfM0YxMjCjqvp4ehHFA3I-JasABKzC8CAy4ndhCHsZdpAtKkqZMEA\"}";
-        let signing_secret = Secret::PublicKey(not_err!(HEXUPPER.decode(public_key.as_bytes())));
+        let signing_secret = Secret::PublicKey(not_err!(hex::decode(public_key.as_bytes())));
 
         let token = not_err!(SignedData::verify_flattened(
             jwt.as_bytes(),
@@ -558,16 +555,14 @@ mod tests {
             Secret::Bytes("secret".to_string().into_bytes())
         ));
         let token = expected_jwt.serialize_flattened();
-        let biscuit = not_err!(SignedData::verify_flattened(
+        let jute = not_err!(SignedData::verify_flattened(
             token.as_bytes(),
             Secret::Bytes("secret".to_string().into_bytes()),
             SignatureAlgorithm::HS256,
         ));
         assert_eq!(
             &header,
-            &not_err!(biscuit
-                .data()
-                .deserialize_protected_header::<CustomHeader>())
+            &not_err!(jute.data().deserialize_protected_header::<CustomHeader>())
         );
     }
 

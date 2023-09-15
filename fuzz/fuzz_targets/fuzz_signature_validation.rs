@@ -1,12 +1,12 @@
 #![no_main]
 #[macro_use]
 extern crate libfuzzer_sys;
-extern crate biscuit;
+extern crate jute;
 extern crate serde_json;
 
-use biscuit::*;
-use biscuit::jws::*;
-use biscuit::jwa::*;
+use jute::jwa::*;
+use jute::jws::*;
+use jute::*;
 
 fuzz_target!(|data: &[u8]| {
     let signing_secret = Secret::Bytes("secret".to_string().into_bytes());
@@ -17,6 +17,6 @@ fuzz_target!(|data: &[u8]| {
     }
     let expected_token = expected_token.unwrap();
 
-    let token = JWT::<serde_json::Value, biscuit::Empty>::new_encoded(&expected_token);
+    let token = JWT::<serde_json::Value, jute::Empty>::new_encoded(&expected_token);
     let _ = token.into_decoded(&signing_secret, SignatureAlgorithm::HS256);
 });

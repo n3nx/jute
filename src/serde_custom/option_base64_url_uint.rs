@@ -3,7 +3,7 @@
 //! The integers are first converted into bytes in big-endian form and then base64 encoded.
 use std::fmt;
 
-use data_encoding::BASE64URL_NOPAD;
+use base64ct::{Base64UrlUnpadded, Encoding};
 use num_bigint::BigUint;
 use serde::de;
 use serde::{Deserializer, Serializer};
@@ -16,7 +16,7 @@ where
     match *value {
         Some(ref value) => {
             let bytes = value.to_bytes_be();
-            let base64 = BASE64URL_NOPAD.encode(bytes.as_slice());
+            let base64 = Base64UrlUnpadded::encode_string(bytes.as_slice());
             serializer.serialize_some(&base64)
         }
         None => serializer.serialize_none(),
@@ -55,9 +55,7 @@ where
         where
             E: de::Error,
         {
-            let bytes = BASE64URL_NOPAD
-                .decode(value.as_bytes())
-                .map_err(E::custom)?;
+            let bytes = Base64UrlUnpadded::decode_vec(value).map_err(E::custom)?;
             Ok(Some(BigUint::from_bytes_be(&bytes)))
         }
     }

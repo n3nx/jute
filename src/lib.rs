@@ -1,11 +1,11 @@
-//! [![Build Status](https://travis-ci.org/lawliet89/biscuit.svg)](https://travis-ci.org/lawliet89/biscuit)
-//! [![Crates.io](https://img.shields.io/crates/v/biscuit.svg)](https://crates.io/crates/biscuit)
-//! [![Repository](https://img.shields.io/github/tag/lawliet89/biscuit.svg)](https://github.com/lawliet89/biscuit)
-//! [![Documentation](https://docs.rs/biscuit/badge.svg)](https://docs.rs/biscuit)
-//! [![dependency status](https://deps.rs/repo/github/lawliet89/biscuit/status.svg)](https://deps.rs/repo/github/lawliet89/biscuit)
+//! [![Build Status](https://travis-ci.org/lawliet89/jute.svg)](https://travis-ci.org/lawliet89/jute)
+//! [![Crates.io](https://img.shields.io/crates/v/jute.svg)](https://crates.io/crates/jute)
+//! [![Repository](https://img.shields.io/github/tag/lawliet89/jute.svg)](https://github.com/lawliet89/jute)
+//! [![Documentation](https://docs.rs/jute/badge.svg)](https://docs.rs/jute)
+//! [![dependency status](https://deps.rs/repo/github/lawliet89/jute/status.svg)](https://deps.rs/repo/github/lawliet89/jute)
 //!
-//! - Documentation:  [stable](https://docs.rs/biscuit/)
-//! - Changelog: [Link](https://github.com/lawliet89/biscuit/blob/master/CHANGELOG.md)
+//! - Documentation:  [stable](https://docs.rs/jute/)
+//! - Changelog: [Link](https://github.com/lawliet89/jute/blob/master/CHANGELOG.md)
 //!
 //! A library to work with Javascript Object Signing and Encryption(JOSE),
 //! including JSON Web Tokens (JWT), JSON Web Signature (JWS) and JSON Web Encryption (JWE)
@@ -17,13 +17,13 @@
 //! Add the following to Cargo.toml:
 //!
 //! ```toml
-//! biscuit = "0.6.0"
+//! jute = "0.6.0"
 //! ```
 //!
 //! To use the latest `master` branch, for example:
 //!
 //! ```toml
-//! biscuit = { git = "https://github.com/lawliet89/biscuit", branch = "master" }
+//! jute = { git = "https://github.com/lawliet89/jute", branch = "master" }
 //! ```
 //!
 //! See [`JWT`] for common usage examples.
@@ -32,7 +32,7 @@
 //! The crate does not support all, and probably will never support all of
 //! the features described in the various RFCs, including some algorithms and verification.
 //!
-//! See the [documentation](https://github.com/lawliet89/biscuit/blob/master/doc/supported.md) for more information.
+//! See the [documentation](https://github.com/lawliet89/jute/blob/master/doc/supported.md) for more information.
 //!
 //! ## References
 //! - [JWT Handbook](https://auth0.com/e-books/jwt-handbook) — great introduction to JWT
@@ -112,8 +112,8 @@ use std::iter;
 use std::ops::Deref;
 use std::str::{self, FromStr};
 
+use base64ct::{Base64UrlUnpadded, Encoding};
 use chrono::{DateTime, Duration, NaiveDateTime, Utc};
-use data_encoding::BASE64URL_NOPAD;
 use serde::de::{self, DeserializeOwned};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -147,9 +147,9 @@ use crate::errors::{Error, ValidationError};
 /// ## Encoding and decoding with HS256
 ///
 /// ```
-/// use biscuit::*;
-/// use biscuit::jws::*;
-/// use biscuit::jwa::*;
+/// use jute::*;
+/// use jute::jws::*;
+/// use jute::jwa::*;
 /// use serde::{Serialize, Deserialize};
 ///
 /// # fn main() {
@@ -198,7 +198,7 @@ use crate::errors::{Error, ValidationError};
 ///
 /// // ... some time later, we get token back!
 ///
-/// let token = JWT::<_, biscuit::Empty>::new_encoded(&token);
+/// let token = JWT::<_, jute::Empty>::new_encoded(&token);
 /// let token = token.into_decoded(&signing_secret,
 ///     SignatureAlgorithm::HS256).unwrap();
 /// assert_eq!(*token.payload().unwrap(), expected_claims);
@@ -211,7 +211,7 @@ pub type JWT<T, H> = jws::Compact<ClaimsSet<T>, H>;
 /// Type `T` is the type of private claims for the encapsulated JWT, and type `H` is the type of the private
 /// header fields of the encapsulated JWT. Type `I` is the private header fields fo the encapsulating JWE.
 ///
-/// Usually, you would set `H` and `I` to `biscuit::Empty` because you usually do not need any private header fields.
+/// Usually, you would set `H` and `I` to `jute::Empty` because you usually do not need any private header fields.
 ///
 /// In general, you should [sign a JWT claims set, then encrypt it](http://crypto.stackexchange.com/a/5466),
 /// although there is nothing stopping you from doing it the other way round.
@@ -221,11 +221,11 @@ pub type JWT<T, H> = jws::Compact<ClaimsSet<T>, H>;
 ///
 /// ```rust
 /// use std::str::FromStr;
-/// use biscuit::{ClaimsSet, RegisteredClaims, Empty, SingleOrMultiple, JWT, JWE};
-/// use biscuit::jwk::JWK;
-/// use biscuit::jws::{self, Secret};
-/// use biscuit::jwe;
-/// use biscuit::jwa::{EncryptionOptions, SignatureAlgorithm, KeyManagementAlgorithm,
+/// use jute::{ClaimsSet, RegisteredClaims, Empty, SingleOrMultiple, JWT, JWE};
+/// use jute::jwk::JWK;
+/// use jute::jws::{self, Secret};
+/// use jute::jwe;
+/// use jute::jwa::{EncryptionOptions, SignatureAlgorithm, KeyManagementAlgorithm,
 ///                    ContentEncryptionAlgorithm};
 /// use serde::{Serialize, Deserialize};
 ///
@@ -329,13 +329,13 @@ pub type JWE<T, H, I> = jwe::Compact<JWT<T, H>, I>;
 /// # Examples
 /// ```
 /// use std::str::FromStr;
-/// use biscuit::*;
-/// use biscuit::jws::*;
-/// use biscuit::jwa::*;
+/// use jute::*;
+/// use jute::jws::*;
+/// use jute::jwa::*;
 ///
 /// # fn main() {
 ///
-/// let claims_set = ClaimsSet::<biscuit::Empty> {
+/// let claims_set = ClaimsSet::<jute::Empty> {
 ///     registered: RegisteredClaims {
 ///         issuer: Some(FromStr::from_str("https://www.acme.com").unwrap()),
 ///         subject: Some(FromStr::from_str("John Doe").unwrap()),
@@ -361,6 +361,20 @@ pub struct Empty {}
 
 impl CompactJson for Empty {}
 
+/// Get the length of the output from decoding the provided *unpadded*
+/// Base64-encoded input.
+///
+/// Note that this function does not fully validate the Base64 is well-formed
+/// and may return incorrect results for malformed Base64.
+#[allow(clippy::integer_arithmetic)]
+#[inline(always)]
+const fn decoded_len(input_len: usize) -> usize {
+    // overflow-proof computation of `(3*n)/4`
+    let k = input_len / 4;
+    let l = input_len - 4 * k;
+    3 * k + (3 * l) / 4
+}
+
 /// A "part" of the compact representation of JWT/JWS/JWE. Parts are first serialized to some form and then
 /// base64 encoded and separated by periods.
 ///
@@ -380,14 +394,21 @@ pub trait CompactPart {
     where
         Self: Sized,
     {
-        let decoded = BASE64URL_NOPAD.decode(encoded.as_ref())?;
-        Self::from_bytes(&decoded)
+        let mut decoded = vec![0u8; decoded_len(encoded.as_ref().len())];
+        let len = Base64UrlUnpadded::decode(encoded.as_ref(), &mut decoded)?.len();
+
+        if len <= decoded.len() {
+            decoded.truncate(len);
+            Self::from_bytes(&decoded)
+        } else {
+            Err(Error::DecodeBase64(base64ct::Error::InvalidLength))
+        }
     }
 
     /// Serialize `Self` to some form and then base64URL Encode
     fn to_base64(&self) -> Result<Base64Url, Error> {
         let bytes = self.to_bytes()?;
-        Ok(Base64Url(BASE64URL_NOPAD.encode(bytes.as_ref())))
+        Ok(Base64Url(Base64UrlUnpadded::encode_string(bytes.as_ref())))
     }
 }
 
@@ -463,7 +484,7 @@ impl Borrow<str> for Base64Url {
 
 impl CompactPart for Base64Url {
     fn to_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(BASE64URL_NOPAD.decode(self.as_ref())?)
+        Ok(Base64UrlUnpadded::decode_vec(&self.0)?)
     }
 
     /// Convert a sequence of bytes into Self
@@ -603,7 +624,7 @@ impl<'de> Deserialize<'de> for Compact {
 ///
 /// # Examples
 /// ```
-/// use biscuit::SingleOrMultiple;
+/// use jute::SingleOrMultiple;
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]

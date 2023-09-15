@@ -13,7 +13,7 @@
 
 An opinionated library that includes implementations of JSON Web Tokens (JWT), JSON Web Signature (JWS), JSON Web Encryption (JWE) along with their dependencies like JSON Web Algorithm (JWA) and JSON Web Keys (JWK).
 
-This work is originally derived from [`biscuit`](https://github.com/lawliet89/biscuit).
+This work is originally derived from [`jute`](https://github.com/lawliet89/jute).
 
 ## Motivation
 
