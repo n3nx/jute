@@ -1,6 +1,6 @@
 [package]
 name = "jute"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Naman Bishnoi <nmn@n3n.org>"]
 description = "An opinionated JSON Object Signing and Encryption (JOSE) library that includes implementations of JSON Web Tokens (JWT), JSON Web Signature (JWS), JSON Web Encryption (JWE) along with dependencies like JSON Web Algorithm (JWA) and JSON Web Keys (JWK)."
