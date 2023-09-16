@@ -492,7 +492,7 @@ mod tests {
     fn flattened_jws_verify_es256() {
         // This is a ECDSA Public key in `SubjectPublicKey` form.
         // Conversion is not available in `ring` yet.
-        // See https://github.com/lawliet89/jute/issues/71#issuecomment-296445140 for a
+        // See https://github.com/lawliet89/biscuit/issues/71#issuecomment-296445140 for a
         // way to retrieve it from `SubjectPublicKeyInfo`.
         let public_key =
             "043727F96AAD416887DD75CC2E333C3D8E06DCDF968B6024579449A2B802EFC891F638C75\

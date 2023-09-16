@@ -11,9 +11,9 @@
 [![dependency status](https://deps.rs/repo/github/n3nx/jute/status.svg)](https://deps.rs/repo/github/n3nx/jute)
 [![Build status](https://github.com/n3nx/jute/workflows/CI/badge.svg)](https://github.com/n3nx/jute/actions)
 
-An opinionated library that includes implementations of JSON Web Tokens (JWT), JSON Web Signature (JWS), JSON Web Encryption (JWE) along with their dependencies like JSON Web Algorithm (JWA) and JSON Web Keys (JWK).
+An opinionated JSON Object Signing Encryption (JOSE) library that includes implementations of JSON Web Tokens (JWT), JSON Web Signature (JWS), JSON Web Encryption (JWE) along with their dependencies like JSON Web Algorithm (JWA) and JSON Web Keys (JWK).
 
-This work is originally derived from [`jute`](https://github.com/lawliet89/jute).
+This work is originally derived from [`biscuit`](https://github.com/lawliet89/biscuit).
 
 ## Motivation
 
@@ -22,6 +22,7 @@ The name *Jute* is a phonetic term of how *JWT* sounds.
 Our primary focus for this project is to ensure that the algorithms and techniques used in this library are cryptographically secure and reliable for present and future use.
 
 Since this library is opinionated, we have removed implementations that are mentioned in RFCs but are considered obsolete and/or unsecure to use by today's standards.
+See the [documentation](https://github.com/n3nx/jute/blob/dev/doc/supported.md) for more information.
 
 Contributions and peer reviews are highly appreciated and we welcome everyone who wants to support this project.
 

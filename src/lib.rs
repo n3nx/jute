@@ -1,29 +1,40 @@
-//! [![Build Status](https://travis-ci.org/lawliet89/jute.svg)](https://travis-ci.org/lawliet89/jute)
+//! [![Build Status](https://travis-ci.org/n3nx/jute.svg)](https://travis-ci.org/n3nx/jute)
 //! [![Crates.io](https://img.shields.io/crates/v/jute.svg)](https://crates.io/crates/jute)
-//! [![Repository](https://img.shields.io/github/tag/lawliet89/jute.svg)](https://github.com/lawliet89/jute)
+//! [![Repository](https://img.shields.io/github/tag/n3nx/jute.svg)](https://github.com/n3nx/jute)
 //! [![Documentation](https://docs.rs/jute/badge.svg)](https://docs.rs/jute)
-//! [![dependency status](https://deps.rs/repo/github/lawliet89/jute/status.svg)](https://deps.rs/repo/github/lawliet89/jute)
+//! [![dependency status](https://deps.rs/repo/github/n3nx/jute/status.svg)](https://deps.rs/repo/github/n3nx/jute)
 //!
 //! - Documentation:  [stable](https://docs.rs/jute/)
-//! - Changelog: [Link](https://github.com/lawliet89/jute/blob/master/CHANGELOG.md)
+//! - Changelog: [Link](https://github.com/n3nx/jute/blob/dev/CHANGELOG.md)
 //!
-//! A library to work with Javascript Object Signing and Encryption(JOSE),
-//! including JSON Web Tokens (JWT), JSON Web Signature (JWS) and JSON Web Encryption (JWE)
+//! An opinionated JSON Object Signing Encryption (JOSE) library that includes implementations of JSON Web Tokens (JWT), JSON Web Signature (JWS), JSON Web Encryption (JWE) along with their dependencies like JSON Web Algorithm (JWA) and JSON Web Keys (JWK).
 //!
-//! This was based off [`Keats/rust-jwt`](https://github.com/Keats/rust-jwt).
+//! This work is originally derived from [`biscuit`](https://github.com/lawliet89/biscuit).
+//!
+//! ## Motivation
+//!
+//! The name *Jute* is a phonetic term of how *JWT* sounds.
+//!
+//! Our primary focus for this project is to ensure that the algorithms and techniques used in this library are cryptographically secure and reliable for present and future use.
+//!
+//! Since this library is opinionated, we have removed algorithmic implementations that are mentioned in the RFCs but are considered obsolete and/or unsecure to use by today's standards. 
+//! See the [documentation](https://github.com/n3nx/jute/blob/dev/doc/supported.md) for more information.
+//!
+//! Contributions and peer reviews are highly appreciated and we welcome everyone who wants to support this project.
+//!
 //!
 //! ## Installation
 //!
 //! Add the following to Cargo.toml:
 //!
 //! ```toml
-//! jute = "0.6.0"
+//! jute = "0.2.0"
 //! ```
 //!
-//! To use the latest `master` branch, for example:
+//! To use the latest `dev` branch, for example:
 //!
 //! ```toml
-//! jute = { git = "https://github.com/lawliet89/jute", branch = "master" }
+//! jute = { git = "https://github.com/n3nx/jute", branch = "dev" }
 //! ```
 //!
 //! See [`JWT`] for common usage examples.
@@ -32,7 +43,7 @@
 //! The crate does not support all, and probably will never support all of
 //! the features described in the various RFCs, including some algorithms and verification.
 //!
-//! See the [documentation](https://github.com/lawliet89/jute/blob/master/doc/supported.md) for more information.
+//! See the [documentation](https://github.com/n3nx/jute/blob/dev/doc/supported.md) for more information.
 //!
 //! ## References
 //! - [JWT Handbook](https://auth0.com/e-books/jwt-handbook) — great introduction to JWT
