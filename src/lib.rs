@@ -113,9 +113,9 @@ use std::ops::Deref;
 use std::str::{self, FromStr};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
-use chrono::{DateTime, Duration, NaiveDateTime, Utc};
 use serde::de::{self, DeserializeOwned};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use time::{Duration, OffsetDateTime};
 
 mod helpers;
 pub use crate::helpers::*;
@@ -174,7 +174,7 @@ use crate::errors::{Error, ValidationError};
 ///         subject: Some("John Doe".to_string()),
 ///         audience:
 ///             Some(SingleOrMultiple::Single("https://acme-customer.com/".to_string())),
-///         not_before: Some(1234.into()),
+///         not_before: Some(1234.try_into().unwrap()),
 ///         ..Default::default()
 ///     },
 ///     private: PrivateClaims {
@@ -246,7 +246,7 @@ pub type JWT<T, H> = jws::Compact<ClaimsSet<T>, H>;
 ///         audience: Some(SingleOrMultiple::Single(
 ///             FromStr::from_str("htts://acme-customer.com").unwrap(),
 ///         )),
-///         not_before: Some(1234.into()),
+///         not_before: Some(1234.try_into().unwrap()),
 ///         ..Default::default()
 ///     },
 ///     private: PrivateClaims {
@@ -341,7 +341,7 @@ pub type JWE<T, H, I> = jwe::Compact<JWT<T, H>, I>;
 ///         subject: Some(FromStr::from_str("John Doe").unwrap()),
 ///         audience:
 ///             Some(SingleOrMultiple::Single(FromStr::from_str("htts://acme-customer.com").unwrap())),
-///         not_before: Some(1234.into()),
+///         not_before: Some(1234.try_into().unwrap()),
 ///         ..Default::default()
 ///     },
 ///     private: Default::default(),
@@ -695,32 +695,33 @@ where
     }
 }
 
-/// Wrapper around `DateTime<Utc>` to allow us to do custom de(serialization)
+/// Wrapper around `OffsetDateTime` to allow us to do custom de(serialization)
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Timestamp(DateTime<Utc>);
+pub struct Timestamp(OffsetDateTime);
 
 impl Deref for Timestamp {
-    type Target = DateTime<Utc>;
+    type Target = OffsetDateTime;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<DateTime<Utc>> for Timestamp {
-    fn from(datetime: DateTime<Utc>) -> Self {
+impl From<OffsetDateTime> for Timestamp {
+    fn from(datetime: OffsetDateTime) -> Self {
         Timestamp(datetime)
     }
 }
 
-impl From<Timestamp> for DateTime<Utc> {
+impl From<Timestamp> for OffsetDateTime {
     fn from(ts: Timestamp) -> Self {
         ts.0
     }
 }
 
-impl From<i64> for Timestamp {
-    fn from(timestamp: i64) -> Self {
-        DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(timestamp, 0), Utc).into()
+impl TryFrom<i64> for Timestamp {
+    type Error = time::error::ComponentRange;
+    fn try_from(timestamp: i64) -> Result<Self, Self::Error> {
+        Ok(Self(OffsetDateTime::from_unix_timestamp(timestamp)?))
     }
 }
 
@@ -729,7 +730,7 @@ impl Serialize for Timestamp {
     where
         S: Serializer,
     {
-        serializer.serialize_i64(self.timestamp())
+        serializer.serialize_i64(self.unix_timestamp())
     }
 }
 
@@ -739,10 +740,9 @@ impl<'de> Deserialize<'de> for Timestamp {
         D: Deserializer<'de>,
     {
         let timestamp = i64::deserialize(deserializer)?;
-        Ok(Timestamp(DateTime::<Utc>::from_utc(
-            NaiveDateTime::from_timestamp(timestamp, 0),
-            Utc,
-        )))
+        Ok(Timestamp(
+            OffsetDateTime::from_unix_timestamp(timestamp).map_err(de::Error::custom)?,
+        ))
     }
 }
 
@@ -860,7 +860,7 @@ impl Default for ValidationOptions {
         ValidationOptions {
             expiry: Validation::Validate(()),
             not_before: Validation::Validate(()),
-            issued_at: Validation::Validate(Duration::max_value()),
+            issued_at: Validation::Validate(Duration::MAX),
 
             claim_presence_options: Default::default(),
             temporal_options: Default::default(),
@@ -925,7 +925,7 @@ impl RegisteredClaims {
         match validation {
             Validation::Ignored => Ok(()),
             Validation::Validate(temporal_options) => {
-                let now = temporal_options.now.unwrap_or_else(Utc::now);
+                let now = temporal_options.now.unwrap_or_else(OffsetDateTime::now_utc);
 
                 match self.expiry {
                     Some(Timestamp(expiry)) if now - expiry > temporal_options.epsilon => {
@@ -945,7 +945,7 @@ impl RegisteredClaims {
         match validation {
             Validation::Ignored => Ok(()),
             Validation::Validate(temporal_options) => {
-                let now = temporal_options.now.unwrap_or_else(Utc::now);
+                let now = temporal_options.now.unwrap_or_else(OffsetDateTime::now_utc);
 
                 match self.not_before {
                     Some(Timestamp(nbf)) if nbf - now > temporal_options.epsilon => {
@@ -965,7 +965,7 @@ impl RegisteredClaims {
         match validation {
             Validation::Ignored => Ok(()),
             Validation::Validate((max_age, temporal_options)) => {
-                let now = temporal_options.now.unwrap_or_else(Utc::now);
+                let now = temporal_options.now.unwrap_or_else(OffsetDateTime::now_utc);
 
                 match self.issued_at {
                     Some(Timestamp(iat)) if iat - now > temporal_options.epsilon => {
@@ -1052,7 +1052,7 @@ impl<T> CompactJson for ClaimsSet<T> where T: Serialize + DeserializeOwned {}
 mod tests {
     use std::str::{self, FromStr};
 
-    use chrono::{Duration, TimeZone, Utc};
+    use time::Duration;
 
     use super::*;
 
@@ -1176,14 +1176,15 @@ mod tests {
 
     #[test]
     fn timestamp_serialization_roundtrip() {
-        use chrono::Timelike;
-
-        let now: Timestamp = Utc::now().with_nanosecond(0).unwrap().into();
+        let now: Timestamp = OffsetDateTime::now_utc()
+            .unix_timestamp()
+            .try_into()
+            .unwrap();
         let serialized = not_err!(serde_json::to_string(&now));
         let deserialized = not_err!(serde_json::from_str(&serialized));
         assert_eq!(now, deserialized);
 
-        let fixed_time: Timestamp = 1000.into();
+        let fixed_time: Timestamp = 1000.try_into().unwrap();
         let serialized = not_err!(serde_json::to_string(&fixed_time));
         assert_eq!(serialized, "1000");
         let deserialized = not_err!(serde_json::from_str(&serialized));
@@ -1209,7 +1210,7 @@ mod tests {
             audience: Some(SingleOrMultiple::Single(not_err!(FromStr::from_str(
                 "htts://acme-customer.com/"
             )))),
-            not_before: Some(1234.into()),
+            not_before: Some(1234.try_into().unwrap()),
             ..Default::default()
         };
         let expected_json =
@@ -1231,7 +1232,7 @@ mod tests {
                 audience: Some(SingleOrMultiple::Single(not_err!(FromStr::from_str(
                     "htts://acme-customer.com/"
                 )))),
-                not_before: Some(1234.into()),
+                not_before: Some(1234.try_into().unwrap()),
                 ..Default::default()
             },
             private: PrivateClaims {
@@ -1261,7 +1262,7 @@ mod tests {
                 audience: Some(SingleOrMultiple::Single(not_err!(FromStr::from_str(
                     "htts://acme-customer.com"
                 )))),
-                not_before: Some(1234.into()),
+                not_before: Some(1234.try_into().unwrap()),
                 ..Default::default()
             },
             private: InvalidPrivateClaim {
@@ -1358,12 +1359,12 @@ mod tests {
     #[test]
     fn validate_times_catch_future_token() {
         let temporal_options = TemporalOptions {
-            now: Some(Utc.timestamp(0, 0)),
+            now: Some(OffsetDateTime::UNIX_EPOCH),
             ..Default::default()
         };
 
         let registered_claims = RegisteredClaims {
-            issued_at: Some(10.into()),
+            issued_at: Some(10.try_into().unwrap()),
             ..Default::default()
         };
 
@@ -1379,12 +1380,12 @@ mod tests {
     #[test]
     fn validate_times_catch_too_old_token() {
         let temporal_options = TemporalOptions {
-            now: Some(Utc.timestamp(40, 0)),
+            now: Some(OffsetDateTime::from_unix_timestamp(40).unwrap()),
             ..Default::default()
         };
 
         let registered_claims = RegisteredClaims {
-            issued_at: Some(10.into()),
+            issued_at: Some(10.try_into().unwrap()),
             ..Default::default()
         };
 
@@ -1400,12 +1401,12 @@ mod tests {
     #[test]
     fn validate_times_catch_expired_token() {
         let temporal_options = TemporalOptions {
-            now: Some(Utc.timestamp(2, 0)),
+            now: Some(OffsetDateTime::from_unix_timestamp(2).unwrap()),
             ..Default::default()
         };
 
         let registered_claims = RegisteredClaims {
-            expiry: Some(1.into()),
+            expiry: Some(1.try_into().unwrap()),
             ..Default::default()
         };
 
@@ -1418,12 +1419,12 @@ mod tests {
     #[test]
     fn validate_times_catch_early_token() {
         let temporal_options = TemporalOptions {
-            now: Some(Utc.timestamp(0, 0)),
+            now: Some(OffsetDateTime::UNIX_EPOCH),
             ..Default::default()
         };
 
         let registered_claims = RegisteredClaims {
-            not_before: Some(1.into()),
+            not_before: Some(1.try_into().unwrap()),
             ..Default::default()
         };
 
@@ -1436,9 +1437,9 @@ mod tests {
     #[test]
     fn validate_times_valid_token_with_default_options() {
         let registered_claims = RegisteredClaims {
-            not_before: Some(Timestamp(Utc::now() - Duration::days(2))),
-            issued_at: Some(Timestamp(Utc::now() - Duration::days(1))),
-            expiry: Some(Timestamp(Utc::now() + Duration::days(1))),
+            not_before: Some(Timestamp(OffsetDateTime::now_utc() - Duration::days(2))),
+            issued_at: Some(Timestamp(OffsetDateTime::now_utc() - Duration::days(1))),
+            expiry: Some(Timestamp(OffsetDateTime::now_utc() + Duration::days(1))),
             ..Default::default()
         };
 
@@ -1448,7 +1449,7 @@ mod tests {
 
             expiry: Validation::Validate(()),
             not_before: Validation::Validate(()),
-            issued_at: Validation::Validate(Duration::max_value()),
+            issued_at: Validation::Validate(Duration::MAX),
 
             ..Default::default()
         };
@@ -1528,9 +1529,9 @@ mod tests {
     #[test]
     fn validate_valid_token_with_all_required() {
         let registered_claims = RegisteredClaims {
-            expiry: Some(999.into()),
-            not_before: Some(1.into()),
-            issued_at: Some(95.into()),
+            expiry: Some(999.try_into().unwrap()),
+            not_before: Some(1.try_into().unwrap()),
+            issued_at: Some(95.try_into().unwrap()),
             subject: Some("subject".to_string()),
             issuer: Some("issuer".to_string()),
             audience: Some(SingleOrMultiple::Multiple(vec![
@@ -1541,7 +1542,7 @@ mod tests {
         };
 
         let temporal_options = TemporalOptions {
-            now: Some(Utc.timestamp(100, 0)),
+            now: Some(OffsetDateTime::from_unix_timestamp(100).unwrap()),
             ..Default::default()
         };
 
@@ -1551,7 +1552,7 @@ mod tests {
 
             expiry: Validation::Validate(()),
             not_before: Validation::Validate(()),
-            issued_at: Validation::Validate(Duration::max_value()),
+            issued_at: Validation::Validate(Duration::MAX),
             audience: Validation::Validate("audience".to_string()),
             issuer: Validation::Validate("issuer".to_string()),
         };
@@ -1562,14 +1563,14 @@ mod tests {
     #[test]
     fn validate_times_valid_token_with_epsilon() {
         let registered_claims = RegisteredClaims {
-            expiry: Some(99.into()),
-            not_before: Some(96.into()),
-            issued_at: Some(96.into()),
+            expiry: Some(99.try_into().unwrap()),
+            not_before: Some(96.try_into().unwrap()),
+            issued_at: Some(96.try_into().unwrap()),
             ..Default::default()
         };
 
         let temporal_options = TemporalOptions {
-            now: Some(Utc.timestamp(100, 0)),
+            now: Some(OffsetDateTime::from_unix_timestamp(100).unwrap()),
             epsilon: Duration::seconds(10),
         };
 
@@ -1579,7 +1580,7 @@ mod tests {
 
             expiry: Validation::Validate(()),
             not_before: Validation::Validate(()),
-            issued_at: Validation::Validate(Duration::max_value()),
+            issued_at: Validation::Validate(Duration::MAX),
 
             ..Default::default()
         };

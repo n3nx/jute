@@ -851,7 +851,7 @@ mod tests {
                 audience: Some(crate::SingleOrMultiple::Single(not_err!(
                     FromStr::from_str("htts://acme-customer.com")
                 ))),
-                not_before: Some(1234.into()),
+                not_before: Some(1234.try_into().unwrap()),
                 ..Default::default()
             },
             private: Default::default(),
@@ -926,7 +926,7 @@ mod tests {
                 audience: Some(crate::SingleOrMultiple::Single(not_err!(
                     FromStr::from_str("htts://acme-customer.com")
                 ))),
-                not_before: Some(1234.into()),
+                not_before: Some(1234.try_into().unwrap()),
                 ..Default::default()
             },
             private: Default::default(),

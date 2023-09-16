@@ -1,7 +1,7 @@
 //! Errors returned will be converted to one of the structs in this module.
 use crate::SingleOrMultiple;
-use chrono::Duration;
 use std::{error, fmt, io, str, string};
+use time::Duration;
 
 #[derive(Debug)]
 /// All the errors we can encounter while signing/verifying tokens
@@ -210,16 +210,16 @@ impl fmt::Display for ValidationError {
                 "The following claims are required, but missing: {:?}",
                 fields
             ),
-            Expired(ago) => write!(f, "Token expired {} seconds ago", ago.num_seconds()),
+            Expired(ago) => write!(f, "Token expired {} seconds ago", ago.whole_seconds()),
             NotYetValid(nyv_for) => write!(
                 f,
                 "Token will be valid in {} seconds",
-                nyv_for.num_seconds()
+                nyv_for.whole_seconds()
             ),
             TooOld(duration) => write!(
                 f,
                 "Token has been considered too old for {} seconds",
-                duration.num_seconds()
+                duration.whole_seconds()
             ),
             InvalidIssuer(ref iss) => write!(f, "Issuer of token is invalid: {:?}", iss),
             InvalidAudience(ref aud) => write!(f, "Audience of token is invalid: {:?}", aud),
