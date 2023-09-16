@@ -1,6 +1,6 @@
 [package]
 name = "jute"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Naman Bishnoi <nmn@n3n.org>"]
 description = "An opinionated JOSE library that implements JWT, JWS, JWE, JWA and JWK."
